@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Симулятор тела, брошенного под углом к горизонту</title>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Slab" rel="stylesheet">
+</head>
+
+<body>
+    <style>
+        *{
+            font-family: "Comic Sans MS", "Comic Sans", cursive !important;
+        }
+        .modebar, .plotly-notifier {
+            display: none !important;
+        }
+
+        body, p{
+            margin:0;
+        }
+
+        .graph {
+            margin-left: 300px;
+            position: absolute;
+        }
+
+        #host, canvas{  
+            position: absolute;
+        }
+
+        canvas{
+            pointer-events: none;
+        }
+
+        .blocks {
+            width: 300px;
+            position: absolute;
+        }
+
+        #host{
+            user-select: none;
+        }
+
+        .block{
+            width: 100%;
+            -ms-user-select: none;
+            user-select: none;
+            margin-bottom: 12px;
+            box-sizing: content-box;
+        }
+        .blockHeader{
+            color:white;
+            background-color: #E88041;
+            border: 1px solid #E88041;
+            text-shadow: 0 1px 1px rgba(42,63,95,.4);
+            display: flex;
+            justify-content: center;
+            clear: both;
+            padding: 6px 12px;
+            height: 15px;
+        }
+        .blockHeaderSpan{
+            margin-top: -5px;
+        }
+
+        .blockContent{
+            background: white;
+            border: 1px solid #FFA748;
+            border-width: 0 1px 1px;
+            box-sizing: content-box;
+        }
+
+        .field{
+            align-items: flex-start;
+            border-top: 1px solid #FFA748;
+            color: black;
+            display: flex;
+            font-weight: 500;
+            justify-content: flex-start;
+            padding: 6px 0;
+            width: 100%;
+            position: relative;
+        }
+
+        .fieldName{
+            font-size: 15px;
+
+            width: 80px;
+            padding-left: 12px;
+            display: block;
+            color: black;
+            padding-top: 3px;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .fieldValue {
+            display: flex;
+            flex-wrap: wrap;
+            flex-basis: 0;
+            padding-right: 12px;
+            padding-left: 12px;
+            align-self: center;
+            flex-grow: 1;
+        }
+
+    </style>
+    <div class="blocks">
+        <div class=block>
+            <div class=blockHeader><span class=blockHeaderSpan>Переменные</span>
+            </div>
+            <div class=blockContent>
+                <div class=field>
+                    <div class=fieldName>
+                        <p id=v0i>V<sub>0</sub> (m/s)</p>
+                    </div>
+                    <div class=fieldValue><input type=number min=0 value=12 id=speedInput></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>
+                        <p>&alpha; (&deg;)</p>
+                    </div>
+                    <div class=fieldValue>
+                        <input type="range" value=45 min=0 max=90 id=alphaInput style="margin-right:10px">
+                        <p id=alpha>45&deg;</p>
+                    </div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>
+                        <p id=h0i>h<sub>0</sub> (m)</p>
+                    </div>
+                    <div class=fieldValue><input type=number value=0 id=h0Input></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>
+                        <p id=tt>t<sub>движ</sub> (s)</p>
+                    </div>
+                    <div class=fieldValue><input type=number value=3 id=ttInput></div>
+                </div>
+            </div>
+        </div>
+        <div class=block>
+            <div class=blockHeader><span class=blockHeaderSpan>Значения</span></div>
+            <div class=blockContent>
+                <div class=field>
+                    <div class=fieldName>t</div>
+                    <div class=fieldValue><input id=ti readonly></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>X</div>
+                    <div class=fieldValue><input id=xi readonly></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>Y</div>
+                    <div class=fieldValue><input id=yi readonly></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>V</div>
+                    <div class=fieldValue><input id=vi readonly></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>V<sub>y</sub></div>
+                    <div class=fieldValue><input id=vyi readonly></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>V<sub>x</sub></div>
+                    <div class=fieldValue><input id=vxi readonly></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName><b>L</b></div>
+                    <div class=fieldValue><input id=xf readonly></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>t<sub>полета</sub></div>
+                    <div class=fieldValue><input id=tf readonly></div>
+                </div>
+                <div class=field>
+                    <div class=fieldName>h<sub>max</sub></div>
+                    <div class=fieldValue><input id=hmax readonly></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="graph">
+        <div id="host" width="100%"></div>
+        <canvas id=axes></canvas>
+    </div>
+
+
+    <script>
+        var hostElement = document.getElementById("host");
+        var marginLeft = 50;
+        var marginRight = 10;
+
+        function calculateWidth() {
+            return window.innerWidth - 300 - marginLeft - marginRight;
+        }
+
+        var marginTop = 30;
+        var marginBottom = 40;
+
+        function calculateHeight() {
+            return document.getElementsByClassName("blocks")[0].offsetHeight;
+        }
+
+        axes.width = calculateWidth();
+        axes.height = calculateHeight();
+
+        function drawAxes() {
+            var c = document.getElementById("axes");
+            var ctx = c.getContext("2d");
+            ctx.beginPath();
+            ctx.font = "16px Arial";
+
+            // y arrow
+            ctx.moveTo(marginLeft - 0.5, marginTop);
+            ctx.lineTo(marginLeft + 5.5, marginTop + 15);
+            ctx.moveTo(marginLeft - 0.5, marginTop);
+            ctx.lineTo(marginLeft - 5.5, marginTop + 15);
+            ctx.fillText("y", marginLeft-15, marginTop+5);
+
+            //x arrow
+            ctx.moveTo(calculateWidth() - marginRight, calculateHeight() - marginBottom);
+            ctx.lineTo(calculateWidth() - marginRight - 15, calculateHeight() - marginBottom + 5.5);
+            ctx.moveTo(calculateWidth() - marginRight, calculateHeight() - marginBottom);
+            ctx.lineTo(calculateWidth() - marginRight - 15, calculateHeight() - marginBottom - 5.5);
+            ctx.fillText("x", calculateWidth() - marginRight -5, calculateHeight() - marginBottom+15);
+
+            ctx.stroke();
+        }
+        drawAxes();
+
+        function fillVariables(t) {
+            xi.value = fx(t).toFixed(3);
+            xi.title = fx(t);
+            yi.value = fy(t).toFixed(3);
+            yi.title = fy(t);
+            ti.value = t.toFixed(3);
+            ti.title = t;
+            vyi.value = fvy(t).toFixed(3);
+            vyi.title = fvy(t);
+            vi.value = fv(t).toFixed(3);
+            vi.title = fv(t);
+
+            tf.value = getFlightTime().toFixed(3);
+            tf.title = getFlightTime();
+            hmax.value = getMaxHeight().toFixed(3);
+            hmax.title = getMaxHeight()
+            xf.value = getFlightLength().toFixed(3);
+            xf.title = getFlightLength()
+            vxi.value = fvx().toFixed(3);
+            vxi.title = fvx()
+        }
+
+        alphaInput.onchange = alphaInput.oninput = function () {
+            alpha.innerHTML = this.value + '&deg;';
+            al = parseFloat(this.value);
+            redraw();
+        }
+        speedInput.onkeyup = speedInput.onchange = speedInput.oninput = function () {
+            if (this.value <= 0) { // speed cant be negative or zero
+                this.value = V0;
+                return false;
+            }
+            V0 = parseFloat(this.value);
+            redraw();
+        }
+        h0Input.oninput = function () {
+            if (this.value < 0) { // h0 cant be negative
+                this.value = h0;
+                return false;
+            }
+            h0 = parseFloat(this.value);
+            redraw();
+        }
+        ttInput.onkeyup = ttInput.onchange = ttInput.oninput = function () {
+            if (this.value < 0) { // tmax cant be negative
+                this.value = tmax;
+                return false;
+            }
+            tmax = parseFloat(this.value);
+            redraw();
+        }
+    </script>
+    <script>
+        function cos(a) {
+            return Math.cos((a * Math.PI) / 180).toFixed(5); // turns degrees into rad
+        }
+
+        function sin(a) {
+            return Math.sin((a * Math.PI) / 180).toFixed(5); // turns degrees into rad
+        }
+
+        function discr(a, b, c) {
+            var d = (b * b) - 4 * a * c;
+            if (d < 0)
+                return false;
+            else {
+                x1 = (-b + Math.sqrt(d)) / (2 * a);
+                x2 = (-b - Math.sqrt(d)) / (2 * a);
+                return [x1, x2];
+            }
+        }
+    </script>
+    <script>
+        var V0 = 12; // start speed
+        var al = 45; // angle 
+        var h0 = 0; // start height
+        var tmax = 3; // flight time
+
+        const g = 9.80665; // g const
+
+        var x = [];
+        var y = [];
+
+        function getFlightTime() {
+            var roots = discr(-g / 2, V0 * sin(al), h0);
+            return Math.max(roots[0], roots[1]);
+            // y = 0; h0+V0*tf*sin(al)-g*tf*tf/2 = 0;
+        }
+
+        function getFlightLength() {
+            return V0 * getFlightTime() * cos(al);
+        }
+
+        function getMaxHeight() {
+            var V = 0;
+            var t = (V - V0 * sin(al)) / (-g)
+            // -(V - V0y)/g
+            return fy(t);
+            // V = 0; 
+            // V = V0 - gt
+        }
+
+        function fvy(t) {
+            return (V0 * sin(al)) - g * t;
+            // V0y - gt
+        }
+
+        function fvx(t) {
+            return V0 * cos(al);
+        }
+
+        function fv(t) {
+            return Math.sqrt(fvy(t) * fvy(t) + fvx(t) * fvx(t));
+        }
+
+        function fx(t) {
+            return V0 * t * cos(al);
+        }
+
+        function fy(t) {
+            return h0 + V0 * t * sin(al) - g * t * t / 2
+        }
+
+        function ft(x) {
+            return x / (V0 * cos(al));
+        }
+
+        var graphOptions = {
+            shapes: [{
+                type: 'rect',
+                xref: 'x',
+                yref: 'paper',
+                x0: 0,
+                y0: 0,
+                x1: fx(3),
+                y1: 0,
+                opacity: 0,
+                line: {
+                    width: 0
+                }
+            }],
+            yaxis: {
+                rangemode: 'tozero',
+                showline: true,
+                zeroline: true,
+                fixedrange: true,
+                nticks: 0,
+                tickformat: '.4n'
+            },
+            xaxis: {
+                fixedrange: false,
+                showline: false,
+                nticks: 0,
+            },
+            hoverlabel: {
+                font: {
+                    size: 16,
+                    color: '#FFFFFF'
+                }
+            },
+            width: calculateWidth(),
+            height: calculateHeight(),
+            colorway: ["#FF683B"],
+            margin: {
+                l: marginLeft, //left
+                r: marginRight, //right
+                b: marginBottom, //bottom
+                t: marginTop, //top
+            },
+        };
+
+        function generateCoords() {
+            x = [];
+            y = [];
+            for (var i = 0; i < tmax; i += 0.0001) {
+                if (fy(i) >= 0) {
+                    x.push(fx(i));
+                    y.push(fy(i));
+                }
+            }
+            
+            graphOptions.shapes[0].x1 = fx(i);
+            var coords = {
+                x: x,
+                y: y,
+            };
+            return coords;
+        }
+
+        var coords = [generateCoords()];
+
+        Plotly.newPlot(hostElement, coords, graphOptions);
+        fillVariables(0);
+
+        hostElement.on('plotly_hover', function (e) {
+            var x = e.points[0].x;
+            var t = ft(x);
+            fillVariables(t);
+        });
+
+        function redraw() {
+            generateCoords();
+            fillVariables(0);
+            hostElement.data[0] = {
+                x,
+                y
+            };
+            Plotly.redraw(hostElement);
+        }
+    </script>
+</body>
+
+</html>
