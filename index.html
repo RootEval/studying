@@ -188,7 +188,7 @@
     </div>
     <div class="graph">
         <div id="host" width="100%"></div>
-        <canvas id=axes></canvas>
+        <canvas id=axis></canvas>
     </div>
 
 
@@ -208,11 +208,11 @@
             return document.getElementsByClassName("blocks")[0].offsetHeight;
         }
 
-        axes.width = calculateWidth();
-        axes.height = calculateHeight();
+        axis.width = calculateWidth();
+        axis.height = calculateHeight();
 
-        function drawAxes() {
-            var c = document.getElementById("axes");
+        function drawAxis() {
+            var c = document.getElementById("axis");
             var ctx = c.getContext("2d");
             ctx.beginPath();
             ctx.font = "16px Arial";
@@ -233,7 +233,7 @@
 
             ctx.stroke();
         }
-        drawAxes();
+        drawAxis();
 
         function fillVariables(t) {
             xi.value = fx(t).toFixed(3);
